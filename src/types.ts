@@ -25,3 +25,15 @@ export interface AuthResult {
   token?: TokenData;
   needsAuth: boolean;
 }
+
+// Google OAuth2 constants
+export const GOOGLE_OAUTH_CONSTANTS = {
+  AUTH_URI: 'https://accounts.google.com/o/oauth2/auth',
+  TOKEN_URI: 'https://oauth2.googleapis.com/token',
+  DEFAULT_REDIRECT_URI: 'http://localhost:8080/callback',
+  DEFAULT_INSTALLED_REDIRECT_URI: 'urn:ietf:wg:oauth:2.0:oob',
+  SCOPES: [
+    'https://www.googleapis.com/auth/gmail.send',
+    'https://www.googleapis.com/auth/gmail.modify',
+  ],
+} as const;

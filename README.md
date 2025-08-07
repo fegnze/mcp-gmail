@@ -22,7 +22,9 @@ A Model Context Protocol (MCP) server for sending emails through Gmail API with 
    - Create a project in [Google Cloud Console](https://console.cloud.google.com/)
    - Enable Gmail API
    - Create OAuth2 credentials (Web application type)
-   - Add authorized redirect URIs
+   - Add authorized redirect URIs:
+     - For local development: `http://localhost:8080/callback`
+     - For production: your actual callback URL
 
 2. **Node.js/Bun**: Version 18+ required
 
@@ -42,7 +44,18 @@ A Model Context Protocol (MCP) server for sending emails through Gmail API with 
    cp .env.example .env
    
    # Edit config/credentials.json with your Google OAuth2 credentials
-   # Edit .env with your environment variables
+   # The file should contain:
+   # {
+   #   "web": {
+   #     "client_id": "your_actual_client_id",
+   #     "client_secret": "your_actual_client_secret", 
+   #     "redirect_uris": ["http://localhost:8080/callback"],
+   #     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
+   #     "token_uri": "https://oauth2.googleapis.com/token"
+   #   }
+   # }
+   
+   # Edit .env with your environment variables if needed
    ```
 
 3. **Build the project**:
@@ -202,6 +215,8 @@ token.json           # Stored access/refresh tokens (auto-generated)
 - Credentials should never be committed to version control
 - Use environment variables in production
 - Regular token rotation is handled automatically
+- Default redirect URI is `http://localhost:8080/callback` for local development
+- For production deployment, update redirect URIs in both Google Cloud Console and configuration
 
 ## Scripts
 

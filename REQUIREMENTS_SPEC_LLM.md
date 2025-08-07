@@ -45,3 +45,12 @@
   - 添加远程仓库地址：git@github.com:fegnze/mcp-gmail.git；
   - 创建初始提交并推送到远程仓库；
   - 项目现已托管在 GitHub 上，支持协作开发和版本管理；
+
+#### 5、需求迭代 4：
+
+- 标准化默认参数配置：
+  - 基于 config/credentials.example.json 文件中的标准配置更新项目；
+  - 添加 Google OAuth2 常量定义，统一管理标准 URI 和默认值；
+  - 更新代码中的默认参数使用常量引用；
+  - 增强文档中的配置示例和安全性说明；
+  - 确保所有配置文件使用一致的默认值（redirect_uri、auth_uri、token_uri）；
