@@ -1,0 +1,22 @@
+version: '3.8'
+
+services:
+  gmail-mcp-server:
+    build: .
+    container_name: gmail-mcp-server
+    environment:
+      - NODE_ENV=production
+      - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
+      - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
+      - GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8080/callback}
+    volumes:
+      - ./auth:/app/auth
+      - ./config/credentials.json:/app/config/credentials.json:ro
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "node", "--version"]
+      interval: 30s
+      timeout: 10s
+      retries: 3

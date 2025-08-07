@@ -1,0 +1,23 @@
+{
+  "mcpServers": {
+    "gmail": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-v",
+        "${PWD}/auth:/app/auth",
+        "-v",
+        "${PWD}/config/credentials.json:/app/config/credentials.json:ro",
+        "-e",
+        "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}",
+        "-e",
+        "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}",
+        "-e",
+        "GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8080/callback}",
+        "gmail-mcp-server"
+      ]
+    }
+  }
+}
