@@ -54,3 +54,24 @@
   - 更新代码中的默认参数使用常量引用；
   - 增强文档中的配置示例和安全性说明；
   - 确保所有配置文件使用一致的默认值（redirect_uri、auth_uri、token_uri）；
+
+#### 6、需求修复 1：
+
+- 修复配置同步问题：
+  - 将所有 MCP 配置文件中的具体路径改为通用路径 `/path/to/mcp-gmail`；
+  - 将 config/credentials.json 中的实际参数值同步到所有 MCP 配置文件：
+    - client_id: `YOUR_CLIENT_ID_HERE`
+    - client_secret: `YOUR_CLIENT_SECRET_HERE`
+    - redirect_uri: `https://developers.google.com/oauthplayground`
+  - 更新代码中的默认 redirect_uri 常量为实际使用值；
+  - 优化代码语法细节和格式；
+  - 确保配置文件的可移植性和实际可用性；
+
+#### 7、需求修复 2：
+
+- 修复 Bun 配置问题：
+  - 修复 `mcp-config-bun.json` 中的 "Script not found 'start'" 错误；
+  - 修复 "Module not found dist/index.js" 问题；
+  - 利用 Bun 的 TypeScript 原生支持，直接运行 `bun src/index.ts`；
+  - 更新 `start:bun` npm 脚本直接运行 TypeScript 源文件；
+  - 更新文档说明 Bun 的 TypeScript 原生运行优势；

@@ -3,7 +3,8 @@
     "gmail": {
       "command": "bun",
       "args": [
-        "src/index.ts"
+        "run",
+        "start:bun"
       ],
       "cwd": "/path/to/mcp-gmail",
       "env": {

@@ -70,7 +70,7 @@ A Model Context Protocol (MCP) server for sending emails through Gmail API with 
 The project includes pre-configured MCP server configuration files for different runtimes in the `config/` directory:
 
 1. **config/mcp-config.json** - Node.js runtime configuration
-2. **config/mcp-config-bun.json** - Bun runtime configuration
+2. **config/mcp-config-bun.json** - Bun runtime configuration (runs TypeScript directly: `bun src/index.ts`)
 3. **config/mcp-config-docker.json** - Docker container configuration
 4. **config/claude-desktop-config.json** - Claude Desktop integration
 
@@ -87,7 +87,7 @@ The project includes pre-configured MCP server configuration files for different
        "gmail": {
          "command": "node",
          "args": ["dist/index.js"],
-         "cwd": "/actual/path/to/gmail-mcp-server",
+         "cwd": "/path/to/mcp-gmail",
          "env": {
            "GOOGLE_CLIENT_ID": "your_actual_client_id",
            "GOOGLE_CLIENT_SECRET": "your_actual_client_secret",
@@ -128,7 +128,7 @@ The project includes pre-configured MCP server configuration files for different
     "gmail": {
       "command": "bun",
       "args": ["run", "dev"],
-      "cwd": "/path/to/gmail-mcp-server",
+      "cwd": "/path/to/mcp-gmail",
       "env": {
         "GOOGLE_CLIENT_ID": "your_client_id",
         "GOOGLE_CLIENT_SECRET": "your_client_secret"
@@ -146,8 +146,16 @@ bun run dev
 ```
 
 ### Production Mode
+
+**With Node.js:**
 ```bash
 bun run start
+```
+
+**With Bun (TypeScript native):**
+```bash
+bun run start:bun
+# or directly: bun src/index.ts
 ```
 
 ### Docker
@@ -222,7 +230,8 @@ token.json           # Stored access/refresh tokens (auto-generated)
 
 - `bun run build` - Build TypeScript to JavaScript
 - `bun run dev` - Run in development mode with watch
-- `bun run start` - Run built server
+- `bun run start` - Run built server with Node.js
+- `bun run start:bun` - Run server directly with Bun (TypeScript native)
 - `bun run lint` - Run ESLint
 - `bun run format` - Format code with Prettier
 - `bun run type-check` - TypeScript type checking

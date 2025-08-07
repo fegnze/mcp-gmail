@@ -15,7 +15,7 @@
         "-e",
         "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}",
         "-e",
-        "GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-http://localhost:8080/callback}",
+        "GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-https://developers.google.com/oauthplayground}",
         "gmail-mcp-server"
       ]
     }

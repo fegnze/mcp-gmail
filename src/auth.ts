@@ -1,7 +1,12 @@
 import { google } from 'googleapis';
 import { OAuth2Client } from 'google-auth-library';
 import fs from 'fs/promises';
-import { GoogleCredentials, TokenData, AuthResult, GOOGLE_OAUTH_CONSTANTS } from './types';
+import {
+  GoogleCredentials,
+  TokenData,
+  AuthResult,
+  GOOGLE_OAUTH_CONSTANTS,
+} from './types';
 
 export class AuthManager {
   private oauth2Client: OAuth2Client;
@@ -33,14 +38,16 @@ export class AuthManager {
           client_id: parsed.web.client_id,
           client_secret: parsed.web.client_secret,
           redirect_uri:
-            parsed.web.redirect_uris?.[0] || GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
+            parsed.web.redirect_uris?.[0] ||
+            GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
         };
       } else if (parsed.installed) {
         this.credentials = {
           client_id: parsed.installed.client_id,
           client_secret: parsed.installed.client_secret,
           redirect_uri:
-            parsed.installed.redirect_uris?.[0] || GOOGLE_OAUTH_CONSTANTS.DEFAULT_INSTALLED_REDIRECT_URI,
+            parsed.installed.redirect_uris?.[0] ||
+            GOOGLE_OAUTH_CONSTANTS.DEFAULT_INSTALLED_REDIRECT_URI,
         };
       } else {
         throw new Error('Invalid credentials format');
@@ -51,7 +58,8 @@ export class AuthManager {
         client_id: process.env.GOOGLE_CLIENT_ID!,
         client_secret: process.env.GOOGLE_CLIENT_SECRET!,
         redirect_uri:
-          process.env.GOOGLE_REDIRECT_URI || GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
+          process.env.GOOGLE_REDIRECT_URI ||
+          GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
       };
 
       if (!this.credentials.client_id || !this.credentials.client_secret) {
@@ -76,9 +84,10 @@ export class AuthManager {
 
   generateAuthUrl(): string {
     return this.oauth2Client.generateAuthUrl({
-      access_type: 'offline',
+      access_type: GOOGLE_OAUTH_CONSTANTS.ACCESS_TYPE,
       scope: [...GOOGLE_OAUTH_CONSTANTS.SCOPES],
       prompt: 'consent',
+      response_type: GOOGLE_OAUTH_CONSTANTS.RESPONSE_TYPE,
     });
   }
 
