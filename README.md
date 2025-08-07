@@ -2,6 +2,11 @@
 
 A Model Context Protocol (MCP) server for sending emails through Gmail API with OAuth2 authentication.
 
+## Repository
+
+- **GitHub**: [fegnze/mcp-gmail](https://github.com/fegnze/mcp-gmail)
+- **Clone**: `git clone git@github.com:fegnze/mcp-gmail.git`
+
 ## Features
 
 - 🔐 OAuth2 authentication with automatic token refresh
@@ -25,8 +30,8 @@ A Model Context Protocol (MCP) server for sending emails through Gmail API with 
 
 1. **Clone and install dependencies**:
    ```bash
-   git clone <repository-url>
-   cd gmail-mcp-server
+   git clone git@github.com:fegnze/mcp-gmail.git
+   cd mcp-gmail
    bun install
    ```
 

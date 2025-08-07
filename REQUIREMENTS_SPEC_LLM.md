@@ -37,3 +37,11 @@
   - 将所有 mcp-config*.json 文件移动到 config 目录；
   - 将 credentials.json 文件移动到 config 目录；
   - 更新代码和文档中的相关路径引用；
+
+#### 4、需求迭代 3：
+
+- 增加版本控制：
+  - 初始化 Git 仓库；
+  - 添加远程仓库地址：git@github.com:fegnze/mcp-gmail.git；
+  - 创建初始提交并推送到远程仓库；
+  - 项目现已托管在 GitHub 上，支持协作开发和版本管理；
