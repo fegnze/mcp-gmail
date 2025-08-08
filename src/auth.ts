@@ -189,8 +189,8 @@ export class AuthManager {
       const tokenData = await fs.readFile(this.tokenPath, 'utf-8');
       console.error('[AUTH] Token loaded successfully');
       return JSON.parse(tokenData);
-    } catch (error: any) {
-      console.error('[AUTH] Token load failed:', error.message);
+    } catch (error: unknown) {
+      console.error('[AUTH] Token load failed:', (error as Error).message);
       return null;
     }
   }

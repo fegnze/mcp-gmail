@@ -21,8 +21,14 @@ export class OAuth2CallbackServer {
         const callbackUrl = await this.tryStartServer(currentPort);
         this.port = currentPort; // 更新实际使用的端口
         return callbackUrl;
-      } catch (error: any) {
-        if (error.code === 'EADDRINUSE') {
+      } catch (error: unknown) {
+        const isPortInUse =
+          error &&
+          typeof error === 'object' &&
+          'code' in error &&
+          (error as { code: string }).code === 'EADDRINUSE';
+
+        if (isPortInUse) {
           console.error(
             `Port ${currentPort} is in use, trying port ${currentPort + 1}...`
           );

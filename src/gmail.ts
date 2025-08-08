@@ -60,9 +60,7 @@ export class GmailService {
     return subject;
   }
 
-  async sendEmail(
-    options: EmailOptions
-  ): Promise<{
+  async sendEmail(options: EmailOptions): Promise<{
     success: boolean;
     messageId?: string | undefined;
     authUrl?: string;
@@ -98,8 +96,16 @@ export class GmailService {
         success: true,
         messageId: response.data.id || undefined,
       };
-    } catch (error: any) {
-      if (error.code === 401 || error.message?.includes('invalid_grant')) {
+    } catch (error: unknown) {
+      // 检查是否是认证错误
+      const isAuthError =
+        (error &&
+          typeof error === 'object' &&
+          'code' in error &&
+          (error as { code: number }).code === 401) ||
+        (error instanceof Error && error.message?.includes('invalid_grant'));
+
+      if (isAuthError) {
         const credentials = this.createCredentials(options);
         const { authUrl } = await this.authManager.generateAuthUrl(credentials);
         return {
@@ -108,7 +114,7 @@ export class GmailService {
         };
       }
 
-      throw new Error(`Failed to send email: ${error.message}`);
+      throw new Error(`Failed to send email: ${(error as Error).message}`);
     }
   }
 
