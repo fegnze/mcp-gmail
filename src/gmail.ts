@@ -1,18 +1,20 @@
 import { google } from 'googleapis';
 import { AuthManager } from './auth';
-import { EmailOptions } from './types';
+import { EmailOptions, GoogleCredentials, GOOGLE_OAUTH_CONSTANTS } from './types';
 
 export class GmailService {
   private authManager: AuthManager;
-  private gmail: any;
 
   constructor(authManager: AuthManager) {
     this.authManager = authManager;
   }
 
-  private async initializeGmailClient(): Promise<void> {
-    const auth = this.authManager.getOAuth2Client();
-    this.gmail = google.gmail({ version: 'v1', auth });
+  private createCredentials(options: EmailOptions): GoogleCredentials {
+    return {
+      client_id: options.client_id,
+      client_secret: options.client_secret,
+      redirect_uri: options.redirect_uri || GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
+    };
   }
 
   private createEmailMessage(options: EmailOptions): string {
@@ -62,9 +64,10 @@ export class GmailService {
 
   async sendEmail(
     options: EmailOptions
-  ): Promise<{ success: boolean; messageId?: string; authUrl?: string }> {
+  ): Promise<{ success: boolean; messageId?: string | undefined; authUrl?: string }> {
     try {
-      const authResult = await this.authManager.ensureValidToken();
+      const credentials = this.createCredentials(options);
+      const authResult = await this.authManager.ensureValidToken(credentials);
 
       if (authResult.needsAuth) {
         return {
@@ -73,11 +76,13 @@ export class GmailService {
         };
       }
 
-      await this.initializeGmailClient();
+      // 使用认证信息初始化Gmail客户端
+      const auth = this.authManager.getOAuth2Client(credentials, authResult.token);
+      const gmail = google.gmail({ version: 'v1', auth });
 
       const raw = this.createEmailMessage(options);
 
-      const response = await this.gmail.users.messages.send({
+      const response = await gmail.users.messages.send({
         userId: 'me',
         requestBody: {
           raw: raw,
@@ -86,11 +91,12 @@ export class GmailService {
 
       return {
         success: true,
-        messageId: response.data.id,
+        messageId: response.data.id || undefined,
       };
     } catch (error: any) {
       if (error.code === 401 || error.message?.includes('invalid_grant')) {
-        const { authUrl } = await this.authManager.generateAuthUrl();
+        const credentials = this.createCredentials(options);
+        const { authUrl } = await this.authManager.generateAuthUrl(credentials);
         return {
           success: false,
           authUrl,
@@ -101,7 +107,7 @@ export class GmailService {
     }
   }
 
-  async handleAuthCode(code: string): Promise<void> {
-    await this.authManager.handleAuthCallback(code);
+  async handleAuthCode(code: string, credentials: GoogleCredentials): Promise<void> {
+    await this.authManager.handleAuthCallback(code, credentials);
   }
 }

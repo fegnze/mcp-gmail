@@ -10,7 +10,7 @@ import {
 import { z } from 'zod';
 import { AuthManager } from './auth.js';
 import { GmailService } from './gmail.js';
-import { EmailOptions } from './types.js';
+import { EmailOptions, AuthUrlOptions, GOOGLE_OAUTH_CONSTANTS } from './types.js';
 
 // 定义工具参数结构
 const SendEmailArgsSchema = z.object({
@@ -19,9 +19,18 @@ const SendEmailArgsSchema = z.object({
   body: z.string().min(1, 'Body cannot be empty'),
   isHtml: z.boolean().optional().default(false),
   cc: z.string().optional(), // 抄送地址，可选
+  // Google OAuth2 credentials - required for authentication
+  client_id: z.string().min(1, 'Google Client ID is required'),
+  client_secret: z.string().min(1, 'Google Client Secret is required'),
+  redirect_uri: z.string().optional(), // Optional, will use default if not provided
 });
 
-const GetAuthUrlArgsSchema = z.object({});
+const GetAuthUrlArgsSchema = z.object({
+  // Google OAuth2 credentials - required for authentication
+  client_id: z.string().min(1, 'Google Client ID is required'),
+  client_secret: z.string().min(1, 'Google Client Secret is required'),
+  redirect_uri: z.string().optional(), // Optional, will use default if not provided
+});
 
 class GmailMCPServer {
   private server: Server;
@@ -81,8 +90,20 @@ class GmailMCPServer {
                   type: 'string',
                   description: 'Carbon copy (CC) email addresses, comma-separated for multiple recipients',
                 },
+                client_id: {
+                  type: 'string',
+                  description: 'Google OAuth2 Client ID from Google Cloud Console',
+                },
+                client_secret: {
+                  type: 'string',
+                  description: 'Google OAuth2 Client Secret from Google Cloud Console',
+                },
+                redirect_uri: {
+                  type: 'string',
+                  description: 'OAuth2 redirect URI (optional, defaults to http://localhost:8080/callback)',
+                },
               },
-              required: ['to', 'subject', 'body'],
+              required: ['to', 'subject', 'body', 'client_id', 'client_secret'],
             },
           } as Tool,
           {
@@ -91,7 +112,21 @@ class GmailMCPServer {
               'Get Google OAuth2 authentication URL with local callback server',
             inputSchema: {
               type: 'object',
-              properties: {},
+              properties: {
+                client_id: {
+                  type: 'string',
+                  description: 'Google OAuth2 Client ID from Google Cloud Console',
+                },
+                client_secret: {
+                  type: 'string',
+                  description: 'Google OAuth2 Client Secret from Google Cloud Console',
+                },
+                redirect_uri: {
+                  type: 'string',
+                  description: 'OAuth2 redirect URI (optional, defaults to http://localhost:8080/callback)',
+                },
+              },
+              required: ['client_id', 'client_secret'],
             },
           } as Tool,
         ],
@@ -109,8 +144,8 @@ class GmailMCPServer {
           }
 
           case 'get_auth_url': {
-            GetAuthUrlArgsSchema.parse(args);
-            return await this.handleGetAuthUrl();
+            const validatedArgs = GetAuthUrlArgsSchema.parse(args);
+            return await this.handleGetAuthUrl(validatedArgs);
           }
 
           default:
@@ -190,14 +225,20 @@ class GmailMCPServer {
     }
   }
 
-  private async handleGetAuthUrl() {
+  private async handleGetAuthUrl(args: AuthUrlOptions) {
     try {
-      const { authUrl } = await this.authManager.generateAuthUrl();
+      const credentials = {
+        client_id: args.client_id,
+        client_secret: args.client_secret,
+        redirect_uri: args.redirect_uri || GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
+      };
+      
+      const { authUrl } = await this.authManager.generateAuthUrl(credentials);
 
       setTimeout(async () => {
         try {
           const authCode = await this.authManager.waitForCallback();
-          await this.gmailService.handleAuthCode(authCode);
+          await this.gmailService.handleAuthCode(authCode, credentials);
           console.error('Authentication completed successfully');
         } catch (error) {
           console.error('Authentication failed:', error);

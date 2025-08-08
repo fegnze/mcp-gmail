@@ -7,15 +7,7 @@
         "-i",
         "--rm",
         "-v",
-        "${PWD}/auth:/app/auth",
-        "-v",
-        "${PWD}/config/credentials.json:/app/config/credentials.json:ro",
-        "-e",
-        "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}",
-        "-e",
-        "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}",
-        "-e",
-        "GOOGLE_REDIRECT_URI=${GOOGLE_REDIRECT_URI:-https://developers.google.com/oauthplayground}",
+        "${PWD}/tokens:/app/tokens",
         "gmail-mcp-server"
       ]
     }

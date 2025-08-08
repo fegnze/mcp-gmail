@@ -19,6 +19,17 @@ export interface EmailOptions {
   body: string;
   isHtml?: boolean;
   cc?: string | undefined; // 抄送地址，支持单个邮箱或逗号分隔的多个邮箱
+  // Google OAuth2 credentials - required for authentication
+  client_id: string;
+  client_secret: string;
+  redirect_uri?: string | undefined; // Optional, will use default if not provided
+}
+
+export interface AuthUrlOptions {
+  // Google OAuth2 credentials - required for authentication
+  client_id: string;
+  client_secret: string;
+  redirect_uri?: string | undefined; // Optional, will use default if not provided
 }
 
 export interface AuthResult {

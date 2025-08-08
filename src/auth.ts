@@ -11,39 +11,24 @@ import {
 import { OAuth2CallbackServer } from './oauth-callback-server';
 
 export class AuthManager {
-  private oauth2Client: OAuth2Client;
   private tokenPath: string;
-  private credentialsPath: string;
-  private credentials?: GoogleCredentials;
   private callbackServer?: OAuth2CallbackServer | undefined;
   private currentCallbackUrl?: string | undefined; // 跟踪当前使用的回调URL
 
-  constructor(
-    credentialsPath = 'config/credentials.json',
-    tokenPath = 'token.json'
-  ) {
+  constructor(tokenPath = 'token.json') {
     // 使用项目根目录作为基础路径，而不是process.cwd()
     const projectRoot = path.dirname(__dirname); // 从dist目录回到项目根目录
     
-    this.credentialsPath = path.isAbsolute(credentialsPath)
-      ? credentialsPath
-      : path.resolve(projectRoot, credentialsPath);
     this.tokenPath = path.isAbsolute(tokenPath)
       ? tokenPath
       : path.resolve(projectRoot, tokenPath);
 
     console.error('Auth paths initialized:');
-    console.error('Credentials:', this.credentialsPath);
     console.error('Token:', this.tokenPath);
     console.error('Current working directory:', process.cwd());
-
-    this.oauth2Client = new google.auth.OAuth2();
   }
 
   async initialize(): Promise<void> {
-    await this.loadCredentials();
-    this.setupOAuth2Client();
-
     // 检查是否已有有效token
     const existingToken = await this.loadToken();
     if (existingToken) {
@@ -58,64 +43,24 @@ export class AuthManager {
     }
   }
 
-  private async loadCredentials(): Promise<void> {
-    try {
-      const credentialsData = await fs.readFile(this.credentialsPath, 'utf-8');
-      const parsed = JSON.parse(credentialsData);
-
-      if (parsed.web) {
-        this.credentials = {
-          client_id: parsed.web.client_id,
-          client_secret: parsed.web.client_secret,
-          redirect_uri:
-            parsed.web.redirect_uris?.[0] ||
-            GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
-        };
-      } else if (parsed.installed) {
-        this.credentials = {
-          client_id: parsed.installed.client_id,
-          client_secret: parsed.installed.client_secret,
-          redirect_uri:
-            parsed.installed.redirect_uris?.[0] ||
-            GOOGLE_OAUTH_CONSTANTS.DEFAULT_INSTALLED_REDIRECT_URI,
-        };
-      } else {
-        throw new Error('Invalid credentials format');
-      }
-    } catch (error) {
-      console.warn('Credentials file not found, using environment variables');
-      this.credentials = {
-        client_id: process.env.GOOGLE_CLIENT_ID!,
-        client_secret: process.env.GOOGLE_CLIENT_SECRET!,
-        redirect_uri:
-          process.env.GOOGLE_REDIRECT_URI ||
-          GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
-      };
-
-      if (!this.credentials.client_id || !this.credentials.client_secret) {
-        throw new Error(
-          'Google credentials not found in file or environment variables'
-        );
-      }
-    }
-  }
-
-  private setupOAuth2Client(): void {
-    if (!this.credentials) {
-      throw new Error('Credentials not loaded');
-    }
-
-    this.oauth2Client = new google.auth.OAuth2(
-      this.credentials.client_id,
-      this.credentials.client_secret,
-      this.credentials.redirect_uri
+  private createOAuth2Client(credentials: GoogleCredentials): OAuth2Client {
+    return new google.auth.OAuth2(
+      credentials.client_id,
+      credentials.client_secret,
+      credentials.redirect_uri
     );
   }
 
-  async generateAuthUrl(): Promise<{
+  async generateAuthUrl(credentials: GoogleCredentials): Promise<{
     authUrl: string;
     callbackUrl: string;
   }> {
+    // 使用默认redirect_uri如果没有提供
+    const finalCredentials: GoogleCredentials = {
+      ...credentials,
+      redirect_uri: credentials.redirect_uri || GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
+    };
+
     this.callbackServer = new OAuth2CallbackServer(
       GOOGLE_OAUTH_CONSTANTS.CALLBACK_PORT
     );
@@ -125,11 +70,10 @@ export class AuthManager {
     this.currentCallbackUrl = callbackUrl;
 
     // 创建专门用于回调的OAuth2Client
-    const tempOAuth2Client = new google.auth.OAuth2(
-      this.credentials!.client_id,
-      this.credentials!.client_secret,
-      callbackUrl // 使用临时的回调URL
-    );
+    const tempOAuth2Client = this.createOAuth2Client({
+      ...finalCredentials,
+      redirect_uri: callbackUrl, // 使用临时的回调URL
+    });
 
     const authUrl = tempOAuth2Client.generateAuthUrl({
       access_type: GOOGLE_OAUTH_CONSTANTS.ACCESS_TYPE,
@@ -141,18 +85,18 @@ export class AuthManager {
     console.error('[AUTH] Auth URL generated with callback:', callbackUrl);
 
     // 启动后台任务等待回调并自动处理认证
-    this.startBackgroundAuthHandler();
+    this.startBackgroundAuthHandler(finalCredentials);
 
     return { authUrl, callbackUrl };
   }
 
-  private startBackgroundAuthHandler(): void {
+  private startBackgroundAuthHandler(credentials: GoogleCredentials): void {
     setTimeout(async () => {
       try {
         console.error('[AUTH] Background auth handler started, waiting for callback...');
         const authCode = await this.waitForCallback();
         console.error('[AUTH] Received auth code, processing token...');
-        await this.handleAuthCallback(authCode);
+        await this.handleAuthCallback(authCode, credentials);
         console.error('[AUTH] Background authentication completed successfully');
         console.error('[AUTH] Token saved, you can now use the Gmail service');
       } catch (error) {
@@ -176,18 +120,17 @@ export class AuthManager {
     }
   }
 
-  async handleAuthCallback(code: string): Promise<TokenData> {
+  async handleAuthCallback(code: string, credentials: GoogleCredentials): Promise<TokenData> {
     try {
       console.error('[AUTH] Processing authorization code...');
       console.error('[AUTH] Code length:', code.length);
       console.error('[AUTH] Code preview:', code.substring(0, 20) + '...');
 
       // 创建专门用于token交换的OAuth2Client，使用正确的回调URL
-      const tokenOAuth2Client = new google.auth.OAuth2(
-        this.credentials!.client_id,
-        this.credentials!.client_secret,
-        this.currentCallbackUrl || GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI
-      );
+      const tokenOAuth2Client = this.createOAuth2Client({
+        ...credentials,
+        redirect_uri: this.currentCallbackUrl || credentials.redirect_uri || GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
+      });
 
       console.error(
         '[AUTH] Using redirect URI for token exchange:',
@@ -215,9 +158,6 @@ export class AuthManager {
 
       console.error('[AUTH] Preparing to save token data...');
       await this.saveToken(tokenData);
-      console.error('[AUTH] Setting credentials in OAuth client...');
-      this.oauth2Client.setCredentials(tokens);
-
       console.error('[AUTH] Token processing completed successfully');
 
       // 清理回调URL
@@ -265,28 +205,29 @@ export class AuthManager {
     }
   }
 
-  async refreshToken(): Promise<TokenData> {
+  async refreshToken(credentials: GoogleCredentials): Promise<TokenData> {
     const currentToken = await this.loadToken();
     if (!currentToken?.refresh_token) {
       throw new Error('No refresh token available');
     }
 
-    this.oauth2Client.setCredentials({
+    const oauth2Client = this.createOAuth2Client(credentials);
+    oauth2Client.setCredentials({
       refresh_token: currentToken.refresh_token,
     });
 
     try {
-      const { credentials } = await this.oauth2Client.refreshAccessToken();
+      const { credentials: newCredentials } = await oauth2Client.refreshAccessToken();
 
       const tokenData: TokenData = {
-        access_token: credentials.access_token!,
-        refresh_token: credentials.refresh_token || currentToken.refresh_token,
-        token_type: credentials.token_type || 'Bearer',
-        expires_in: credentials.expiry_date
-          ? Math.floor((credentials.expiry_date - Date.now()) / 1000)
+        access_token: newCredentials.access_token!,
+        refresh_token: newCredentials.refresh_token || currentToken.refresh_token,
+        token_type: newCredentials.token_type || 'Bearer',
+        expires_in: newCredentials.expiry_date
+          ? Math.floor((newCredentials.expiry_date - Date.now()) / 1000)
           : undefined,
-        expires_at: credentials.expiry_date || undefined,
-        scope: credentials.scope || undefined,
+        expires_at: newCredentials.expiry_date || undefined,
+        scope: newCredentials.scope || undefined,
       };
 
       await this.saveToken(tokenData);
@@ -303,11 +244,11 @@ export class AuthManager {
     return Date.now() >= token.expires_at - 60000; // 1 minute buffer
   }
 
-  async ensureValidToken(): Promise<AuthResult> {
+  async ensureValidToken(credentials: GoogleCredentials): Promise<AuthResult> {
     const currentToken = await this.loadToken();
 
     if (!currentToken) {
-      const { authUrl } = await this.generateAuthUrl();
+      const { authUrl } = await this.generateAuthUrl(credentials);
       return {
         authUrl,
         needsAuth: true,
@@ -316,19 +257,14 @@ export class AuthManager {
 
     if (this.isTokenExpired(currentToken)) {
       try {
-        const refreshedToken = await this.refreshToken();
-        this.oauth2Client.setCredentials({
-          access_token: refreshedToken.access_token,
-          refresh_token: refreshedToken.refresh_token || null,
-        });
-
+        const refreshedToken = await this.refreshToken(credentials);
         return {
           token: refreshedToken,
           needsAuth: false,
         };
       } catch (error) {
         console.warn('Failed to refresh token, need re-authentication:', error);
-        const { authUrl } = await this.generateAuthUrl();
+        const { authUrl } = await this.generateAuthUrl(credentials);
         return {
           authUrl,
           needsAuth: true,
@@ -336,18 +272,22 @@ export class AuthManager {
       }
     }
 
-    this.oauth2Client.setCredentials({
-      access_token: currentToken.access_token,
-      refresh_token: currentToken.refresh_token || null,
-    });
-
     return {
       token: currentToken,
       needsAuth: false,
     };
   }
 
-  getOAuth2Client(): OAuth2Client {
-    return this.oauth2Client;
+  getOAuth2Client(credentials: GoogleCredentials, token?: TokenData): OAuth2Client {
+    const oauth2Client = this.createOAuth2Client(credentials);
+    
+    if (token) {
+      oauth2Client.setCredentials({
+        access_token: token.access_token,
+        refresh_token: token.refresh_token || null,
+      });
+    }
+    
+    return oauth2Client;
   }
 }
