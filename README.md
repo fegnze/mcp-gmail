@@ -14,6 +14,7 @@ A Model Context Protocol (MCP) server for sending emails through Gmail API with 
 - 🔄 **Token Management**: Automatic refresh and expiration handling
 - 🌍 **Internationalization**: Chinese subject encoding support (RFC 2047)
 - 🛠️ **MCP Protocol**: Standard MCP server implementation
+- 🔑 **Dynamic Credentials**: OAuth2 credentials passed as tool parameters (no static config)
 - 🐳 **Multi-Runtime**: Node.js, Bun, and Docker support
 - ✨ **Code Quality**: ESLint, Prettier, TypeScript strict mode
 
@@ -38,31 +39,65 @@ A Model Context Protocol (MCP) server for sending emails through Gmail API with 
    bun install
    ```
 
-2. **Configure credentials**:
-   ```bash
-   # Copy example files
-   cp config/credentials.example.json config/credentials.json
-   cp .env.example .env
-   
-   # Edit config/credentials.json with your Google OAuth2 credentials
-   # The file should contain:
-   # {
-   #   "web": {
-   #     "client_id": "your_actual_client_id",
-   #     "client_secret": "your_actual_client_secret", 
-   #     "redirect_uris": ["http://localhost:8080/callback"],
-   #     "auth_uri": "https://accounts.google.com/o/oauth2/auth",
-   #     "token_uri": "https://oauth2.googleapis.com/token"
-   #   }
-   # }
-   
-   # Edit .env with your environment variables if needed
-   ```
-
-3. **Build the project**:
+2. **Build the project**:
    ```bash
    bun run build
    ```
+
+**Note**: No credential configuration is needed! OAuth2 credentials are now passed as parameters to MCP tools at runtime.
+
+## Breaking Changes (v2.0)
+
+🚨 **Important**: This version introduces breaking changes from previous versions.
+
+### What Changed
+- **OAuth2 credentials** are now **required parameters** for all tools instead of environment variables
+- **No more static configuration** of credentials in config files or environment variables  
+- **Simplified deployment** - no credential management in MCP server configuration
+
+### Migration Guide
+**Before (v1.x)**:
+```json
+// MCP Config had env variables
+{
+  "env": {
+    "GOOGLE_CLIENT_ID": "your_client_id",
+    "GOOGLE_CLIENT_SECRET": "your_client_secret" 
+  }
+}
+
+// Tool calls were simple
+{
+  "name": "send_email",
+  "arguments": {
+    "to": "user@example.com",
+    "subject": "Test",
+    "body": "Hello"
+  }
+}
+```
+
+**Now (v2.0)**:
+```json
+// MCP Config is simplified - no env needed
+{
+  "command": "node",
+  "args": ["dist/index.js"],
+  "cwd": "/path/to/mcp-gmail" 
+}
+
+// Tool calls include credentials
+{
+  "name": "send_email", 
+  "arguments": {
+    "to": "user@example.com",
+    "subject": "Test", 
+    "body": "Hello",
+    "client_id": "your_google_client_id",
+    "client_secret": "your_google_client_secret"
+  }
+}
+```
 
 ## MCP Configuration
 
@@ -81,19 +116,14 @@ The project includes pre-configured MCP server configuration files for different
    - **macOS**: `~/Library/Application Support/Claude/claude_desktop_config.json`
    - **Windows**: `%APPDATA%\\Claude\\claude_desktop_config.json`
 
-2. Update the configuration with your actual paths and credentials:
+2. Update the configuration with your actual path:
    ```json
    {
      "mcpServers": {
        "gmail": {
          "command": "node",
          "args": ["dist/index.js"],
-         "cwd": "/path/to/mcp-gmail",
-         "env": {
-           "GOOGLE_CLIENT_ID": "your_actual_client_id",
-           "GOOGLE_CLIENT_SECRET": "your_actual_client_secret",
-           "GOOGLE_REDIRECT_URI": "http://localhost:8080/callback"
-         }
+         "cwd": "/path/to/mcp-gmail"
        }
      }
    }
@@ -111,10 +141,7 @@ The project includes pre-configured MCP server configuration files for different
       "command": "docker",
       "args": [
         "run", "-i", "--rm",
-        "-v", "${PWD}/auth:/app/auth",
-        "-v", "${PWD}/credentials.json:/app/credentials.json:ro",
-        "-e", "GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}",
-        "-e", "GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}",
+        "-v", "${PWD}/tokens:/app/tokens",
         "gmail-mcp-server"
       ]
     }
@@ -122,18 +149,14 @@ The project includes pre-configured MCP server configuration files for different
 }
 ```
 
-#### For Development
+#### For Development with Bun
 ```json
 {
   "mcpServers": {
     "gmail": {
       "command": "bun",
-      "args": ["run", "dev"],
-      "cwd": "/path/to/mcp-gmail",
-      "env": {
-        "GOOGLE_CLIENT_ID": "your_client_id",
-        "GOOGLE_CLIENT_SECRET": "your_client_secret"
-      }
+      "args": ["src/index.ts"],
+      "cwd": "/path/to/mcp-gmail"
     }
   }
 }
@@ -182,9 +205,42 @@ Send an email via Gmail with automatic authentication flow.
 - `body` (string, required): Email body content
 - `isHtml` (boolean, optional): Whether body is HTML format (default: false)
 - `cc` (string, optional): Carbon copy email addresses (comma-separated for multiple)
+- `client_id` (string, required): Google OAuth2 Client ID from Google Cloud Console
+- `client_secret` (string, required): Google OAuth2 Client Secret from Google Cloud Console
+- `redirect_uri` (string, optional): OAuth2 redirect URI (defaults to http://localhost:8080/callback)
+
+**Example**:
+```json
+{
+  "name": "send_email",
+  "arguments": {
+    "to": "user@example.com",
+    "subject": "Hello World",
+    "body": "This is a test email",
+    "client_id": "your_google_client_id.apps.googleusercontent.com",
+    "client_secret": "your_google_client_secret"
+  }
+}
+```
 
 ### `get_auth_url`
 Manually trigger OAuth2 authentication with local callback server. The authentication process is fully automated once you visit the URL.
+
+**Parameters**:
+- `client_id` (string, required): Google OAuth2 Client ID from Google Cloud Console
+- `client_secret` (string, required): Google OAuth2 Client Secret from Google Cloud Console  
+- `redirect_uri` (string, optional): OAuth2 redirect URI (defaults to http://localhost:8080/callback)
+
+**Example**:
+```json
+{
+  "name": "get_auth_url", 
+  "arguments": {
+    "client_id": "your_google_client_id.apps.googleusercontent.com",
+    "client_secret": "your_google_client_secret"
+  }
+}
+```
 
 ## Authentication Flow
 
@@ -209,11 +265,9 @@ src/
 └── types.ts                    # TypeScript type definitions
 
 config/
-├── credentials.json            # Google OAuth2 credentials (create from example)
-├── credentials.example.json    # Template for OAuth2 credentials
+├── credentials.example.json    # Template for OAuth2 credentials (optional reference)
 ├── mcp-config.json            # Node.js runtime MCP config
 ├── mcp-config-bun.json        # Bun runtime MCP config  
-├── mcp-config-bun-alt.json    # Alternative Bun configuration
 ├── mcp-config-docker.json     # Docker runtime MCP config
 └── claude-desktop-config.json # Claude Desktop integration config
 
@@ -222,12 +276,13 @@ token.json                     # Stored access/refresh tokens (auto-generated)
 
 ## Security Notes
 
-- Tokens are stored locally in `token.json`
-- Credentials should never be committed to version control
-- Use environment variables in production
-- Regular token rotation is handled automatically
-- Default redirect URI is `http://localhost:8080/callback` for local development
-- For production deployment, update redirect URIs in both Google Cloud Console and configuration
+- 🔐 **Credentials Security**: OAuth2 credentials are passed as tool parameters, not stored in config files
+- 🔒 **Token Storage**: Tokens are stored locally in `token.json` 
+- 🚫 **No Static Secrets**: No credentials committed to version control or stored in environment variables
+- 🔄 **Token Management**: Automatic token refresh and rotation handled securely
+- 🌐 **Callback URI**: Default redirect URI is `http://localhost:8080/callback` for local development
+- 📋 **Production Setup**: For production, add your callback URL to Google Cloud Console authorized redirect URIs
+- 🤖 **AI-Driven**: Credentials provided dynamically by AI models at runtime, enhancing security
 
 ## Scripts
 
