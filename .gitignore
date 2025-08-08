@@ -7,3 +7,4 @@ dist/
 auth/
 config/credentials.json
 token.json
+config/monthly-approva-email
