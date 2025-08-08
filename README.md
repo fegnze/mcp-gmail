@@ -16,7 +16,7 @@ A Model Context Protocol (MCP) server for sending emails through Gmail API with 
 - 🛠️ **MCP Protocol**: Standard MCP server implementation
 - 🔑 **Dynamic Credentials**: OAuth2 credentials passed as tool parameters (no static config)
 - 🐳 **Multi-Runtime**: Node.js, Bun, and Docker support
-- ✨ **Code Quality**: ESLint, Prettier, TypeScript strict mode
+- ✨ **Code Quality**: ESLint, Prettier, TypeScript strict mode, 100% type-safe (no `any` types)
 
 ## Prerequisites
 
