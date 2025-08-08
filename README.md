@@ -265,7 +265,6 @@ src/
 └── types.ts                    # TypeScript type definitions
 
 config/
-├── credentials.example.json    # Template for OAuth2 credentials (optional reference)
 ├── mcp-config.json            # Node.js runtime MCP config
 ├── mcp-config-bun.json        # Bun runtime MCP config  
 ├── mcp-config-docker.json     # Docker runtime MCP config
