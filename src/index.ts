@@ -18,10 +18,7 @@ const SendEmailArgsSchema = z.object({
   subject: z.string().min(1, 'Subject cannot be empty'),
   body: z.string().min(1, 'Body cannot be empty'),
   isHtml: z.boolean().optional().default(false),
-});
-
-const AuthCallbackArgsSchema = z.object({
-  code: z.string().min(1, 'Authorization code cannot be empty'),
+  cc: z.string().optional(), // 抄送地址，可选
 });
 
 const GetAuthUrlArgsSchema = z.object({});
@@ -57,7 +54,7 @@ class GmailMCPServer {
           {
             name: 'send_email',
             description:
-              'Send an email via Gmail. If authentication is required, returns auth URL.',
+              'Send an email via Gmail with optional CC support. If authentication is required, returns auth URL.',
             inputSchema: {
               type: 'object',
               properties: {
@@ -80,30 +77,21 @@ class GmailMCPServer {
                     'Whether the body is HTML format (default: false)',
                   default: false,
                 },
+                cc: {
+                  type: 'string',
+                  description: 'Carbon copy (CC) email addresses, comma-separated for multiple recipients',
+                },
               },
               required: ['to', 'subject', 'body'],
             },
           } as Tool,
           {
             name: 'get_auth_url',
-            description: 'Get Google OAuth2 authentication URL',
+            description:
+              'Get Google OAuth2 authentication URL with local callback server',
             inputSchema: {
               type: 'object',
               properties: {},
-            },
-          } as Tool,
-          {
-            name: 'auth_callback',
-            description: 'Handle OAuth2 callback with authorization code',
-            inputSchema: {
-              type: 'object',
-              properties: {
-                code: {
-                  type: 'string',
-                  description: 'OAuth2 authorization code from callback',
-                },
-              },
-              required: ['code'],
             },
           } as Tool,
         ],
@@ -123,11 +111,6 @@ class GmailMCPServer {
           case 'get_auth_url': {
             GetAuthUrlArgsSchema.parse(args);
             return await this.handleGetAuthUrl();
-          }
-
-          case 'auth_callback': {
-            const validatedArgs = AuthCallbackArgsSchema.parse(args);
-            return await this.handleAuthCallback(validatedArgs);
           }
 
           default:
@@ -168,7 +151,7 @@ class GmailMCPServer {
           content: [
             {
               type: 'text',
-              text: `Authentication required. Please visit this URL to authenticate:\\n${result.authUrl}\\n\\nAfter authentication, use the 'auth_callback' tool with the authorization code.`,
+              text: `Authentication required. Local callback server started. Please visit this URL to authenticate:\\n${result.authUrl}\\n\\nThe authorization will be handled automatically. After authentication, you can retry sending the email.`,
             },
           ],
         };
@@ -209,12 +192,23 @@ class GmailMCPServer {
 
   private async handleGetAuthUrl() {
     try {
-      const authUrl = this.authManager.generateAuthUrl();
+      const { authUrl } = await this.authManager.generateAuthUrl();
+
+      setTimeout(async () => {
+        try {
+          const authCode = await this.authManager.waitForCallback();
+          await this.gmailService.handleAuthCode(authCode);
+          console.error('Authentication completed successfully');
+        } catch (error) {
+          console.error('Authentication failed:', error);
+        }
+      }, 0);
+
       return {
         content: [
           {
             type: 'text',
-            text: `Please visit this URL to authenticate:\\n${authUrl}\\n\\nAfter authentication, use the 'auth_callback' tool with the authorization code.`,
+            text: `Local callback server started. Please visit this URL to authenticate:\\n${authUrl}\\n\\nThe authorization will be handled automatically. Authentication process initiated in background.`,
           },
         ],
       };
@@ -224,30 +218,6 @@ class GmailMCPServer {
           {
             type: 'text',
             text: `Error generating auth URL: ${error instanceof Error ? error.message : String(error)}`,
-          },
-        ],
-        isError: true,
-      };
-    }
-  }
-
-  private async handleAuthCallback(args: { code: string }) {
-    try {
-      await this.gmailService.handleAuthCode(args.code);
-      return {
-        content: [
-          {
-            type: 'text',
-            text: 'Authentication successful! You can now send emails.',
-          },
-        ],
-      };
-    } catch (error) {
-      return {
-        content: [
-          {
-            type: 'text',
-            text: `Authentication failed: ${error instanceof Error ? error.message : String(error)}`,
           },
         ],
         isError: true,

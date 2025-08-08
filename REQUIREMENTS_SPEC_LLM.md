@@ -59,10 +59,7 @@
 
 - 修复配置同步问题：
   - 将所有 MCP 配置文件中的具体路径改为通用路径 `/path/to/mcp-gmail`；
-  - 将 config/credentials.json 中的实际参数值同步到所有 MCP 配置文件：
-    - client_id: `YOUR_CLIENT_ID_HERE`
-    - client_secret: `YOUR_CLIENT_SECRET_HERE`
-    - redirect_uri: `https://developers.google.com/oauthplayground`
+  - 将 config/credentials.json 中的实际参数值同步到所有 MCP 配置文件；
   - 更新代码中的默认 redirect_uri 常量为实际使用值；
   - 优化代码语法细节和格式；
   - 确保配置文件的可移植性和实际可用性；
@@ -75,3 +72,60 @@
   - 利用 Bun 的 TypeScript 原生支持，直接运行 `bun src/index.ts`；
   - 更新 `start:bun` npm 脚本直接运行 TypeScript 源文件；
   - 更新文档说明 Bun 的 TypeScript 原生运行优势；
+
+#### 8、安全修复：
+
+- 修复 GitHub 安全检测问题：
+  - 将配置文件中的真实 Google OAuth2 凭据替换为占位符；
+  - 确保敏感信息不会被提交到公共仓库；
+  - 维护配置文件的实用性同时保护隐私安全；
+
+#### 9、OAuth2 回调服务器实现：
+
+- 创建本地 OAuth2 回调处理服务器 (`src/oauth-callback-server.ts`)：
+  - 实现 HTTP 服务器监听 OAuth2 回调请求；
+  - 提供用户友好的 HTML 响应界面；
+  - 支持成功和错误状态的处理；
+  - 包含自动超时和服务器清理机制；
+  - 集成到 AuthManager 中提供无缝认证流程；
+- 更新 OAuth2 常量默认 redirect_uri 为 `http://localhost:8080/callback`；
+- 在 MCP Server 中添加新的 `get_auth_url_with_callback` 工具；
+- 支持本地回调和 Google OAuth Playground 两种认证方式；
+- 更新 Google OAuth2 配置添加本地回调 URL 支持；
+
+#### 10、简化认证流程：
+
+- 移除传统的手动认证方式：
+  - 删除原有的 `get_auth_url` 和 `auth_callback` 工具分离设计；
+  - 将 `get_auth_url` 工具重构为自动化本地回调认证；
+  - 移除手动输入授权码的步骤；
+  - 简化用户交互，只需访问认证URL即可完成整个流程；
+- 统一认证接口，所有认证都通过本地回调服务器自动完成；
+- 优化代码结构，修复TypeScript类型和ESLint格式问题；
+
+#### 11、MCP协议和用户体验修复：
+
+- **修复MCP协议JSON解析错误**：
+  - 发现控制台日志输出到stdout导致MCP JSON通信失败；
+  - 将所有`console.log`改为`console.error`，确保日志输出到stderr；
+  - 解决了"Unexpected token"错误，MCP服务器现在正常工作；
+- **修复Token文件路径问题**：
+  - Token文件之前保存在用户主目录(`/Users/ghost/token.json`)；
+  - 修改路径逻辑使用项目根目录而不是`process.cwd()`；
+  - Token文件现在正确保存在MCP服务器工作目录中；
+- **修复中文邮件主题乱码**：
+  - 添加RFC 2047编码支持，解决非ASCII字符显示问题；
+  - 中文邮件主题现在能够正确显示；
+  - 使用`=?UTF-8?B?base64编码?=`格式对包含中文的主题进行编码；
+
+#### 12、OAuth2认证流程完善：
+
+- **修复OAuth2参数缺失**：
+  - 在OAuth2认证URL生成中添加缺失的`response_type`参数；
+  - 确保`response_type: 'code'`符合OAuth2标准规范；
+  - 修复了Google OAuth2服务器的400错误响应；
+- **OAuth2认证流程稳定性提升**：
+  - 完善了本地回调服务器的错误处理机制；
+  - 优化了token交换和存储流程的可靠性；
+  - 改进了认证失败时的用户提示和错误恢复；
+

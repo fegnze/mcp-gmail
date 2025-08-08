@@ -18,6 +18,7 @@ export interface EmailOptions {
   subject: string;
   body: string;
   isHtml?: boolean;
+  cc?: string | undefined; // 抄送地址，支持单个邮箱或逗号分隔的多个邮箱
 }
 
 export interface AuthResult {
@@ -28,9 +29,9 @@ export interface AuthResult {
 
 // Google OAuth2 constants
 export const GOOGLE_OAUTH_CONSTANTS = {
-  AUTH_URI: 'https://accounts.google.com/o/oauth2/auth',
+  AUTH_URI: 'https://accounts.google.com/o/oauth2/v2/auth',
   TOKEN_URI: 'https://oauth2.googleapis.com/token',
-  DEFAULT_REDIRECT_URI: 'https://developers.google.com/oauthplayground',
+  DEFAULT_REDIRECT_URI: 'http://localhost:8080/callback',
   DEFAULT_INSTALLED_REDIRECT_URI: 'urn:ietf:wg:oauth:2.0:oob',
   SCOPES: [
     'https://www.googleapis.com/auth/gmail.send',
@@ -38,4 +39,5 @@ export const GOOGLE_OAUTH_CONSTANTS = {
   ],
   RESPONSE_TYPE: 'code',
   ACCESS_TYPE: 'offline',
+  CALLBACK_PORT: 8080,
 } as const;

@@ -1,6 +1,6 @@
 # Gmail MCP Server
 
-A Model Context Protocol (MCP) server for sending emails through Gmail API with OAuth2 authentication.
+A Model Context Protocol (MCP) server for sending emails through Gmail API with OAuth2 authentication and local callback server support.
 
 ## Repository
 
@@ -9,12 +9,13 @@ A Model Context Protocol (MCP) server for sending emails through Gmail API with 
 
 ## Features
 
-- 🔐 OAuth2 authentication with automatic token refresh
-- 📧 Send emails through Gmail API
-- 🔄 Automatic re-authentication when tokens expire
-- 🐳 Docker containerization support
-- 📝 TypeScript with full type safety
-- ✨ Code quality tools (ESLint, Prettier)
+- 🔐 **Complete OAuth2 Flow**: Automated authentication with local callback server
+- 📧 **Gmail Integration**: Send HTML/plain text emails with CC support
+- 🔄 **Token Management**: Automatic refresh and expiration handling
+- 🌍 **Internationalization**: Chinese subject encoding support (RFC 2047)
+- 🛠️ **MCP Protocol**: Standard MCP server implementation
+- 🐳 **Multi-Runtime**: Node.js, Bun, and Docker support
+- ✨ **Code Quality**: ESLint, Prettier, TypeScript strict mode
 
 ## Prerequisites
 
@@ -173,48 +174,50 @@ docker run -p 8080:8080 -v $(pwd)/auth:/app/auth gmail-mcp-server
 The server provides these MCP tools:
 
 ### `send_email`
-Send an email via Gmail. Returns authentication URL if not authenticated.
+Send an email via Gmail with automatic authentication flow.
 
 **Parameters**:
 - `to` (string, required): Recipient email address
-- `subject` (string, required): Email subject
+- `subject` (string, required): Email subject (supports Chinese characters)
 - `body` (string, required): Email body content
 - `isHtml` (boolean, optional): Whether body is HTML format (default: false)
+- `cc` (string, optional): Carbon copy email addresses (comma-separated for multiple)
 
 ### `get_auth_url`
-Get Google OAuth2 authentication URL.
-
-### `auth_callback`
-Handle OAuth2 callback with authorization code.
-
-**Parameters**:
-- `code` (string, required): OAuth2 authorization code
+Manually trigger OAuth2 authentication with local callback server. The authentication process is fully automated once you visit the URL.
 
 ## Authentication Flow
 
-1. Call `send_email` or `get_auth_url`
-2. Visit the returned authentication URL
+The authentication process is streamlined with a local callback server:
+
+1. Call `send_email` (authentication happens automatically if needed) or `get_auth_url` 
+2. Visit the returned authentication URL in your browser
 3. Complete Google OAuth2 consent flow
-4. Use `auth_callback` with the received authorization code
-5. Server stores tokens and can now send emails
+4. The local callback server automatically handles the response
+5. Tokens are stored and emails can now be sent immediately
+
+**No manual code entry required** - the entire flow is automated!
 
 ## File Structure
 
 ```
 src/
-├── index.ts          # MCP server main entry point
-├── auth.ts           # OAuth2 authentication manager
-├── gmail.ts          # Gmail API service
-└── types.ts          # TypeScript type definitions
+├── index.ts                    # MCP server main entry point
+├── auth.ts                     # OAuth2 authentication manager with callback server
+├── gmail.ts                    # Gmail API service with Chinese encoding support
+├── oauth-callback-server.ts    # Local HTTP server for OAuth2 callbacks
+└── types.ts                    # TypeScript type definitions
 
 config/
-├── credentials.json       # Google OAuth2 credentials
-├── mcp-config.json       # Node.js runtime MCP config
-├── mcp-config-bun.json   # Bun runtime MCP config
-├── mcp-config-docker.json # Docker runtime MCP config
+├── credentials.json            # Google OAuth2 credentials (create from example)
+├── credentials.example.json    # Template for OAuth2 credentials
+├── mcp-config.json            # Node.js runtime MCP config
+├── mcp-config-bun.json        # Bun runtime MCP config  
+├── mcp-config-bun-alt.json    # Alternative Bun configuration
+├── mcp-config-docker.json     # Docker runtime MCP config
 └── claude-desktop-config.json # Claude Desktop integration config
 
-token.json           # Stored access/refresh tokens (auto-generated)
+token.json                     # Stored access/refresh tokens (auto-generated)
 ```
 
 ## Security Notes
