@@ -23,7 +23,9 @@ export class OAuth2CallbackServer {
         return callbackUrl;
       } catch (error: any) {
         if (error.code === 'EADDRINUSE') {
-          console.error(`Port ${currentPort} is in use, trying port ${currentPort + 1}...`);
+          console.error(
+            `Port ${currentPort} is in use, trying port ${currentPort + 1}...`
+          );
           currentPort++;
           continue;
         }
@@ -32,7 +34,9 @@ export class OAuth2CallbackServer {
       }
     }
 
-    throw new Error(`Failed to start server. Tried ports ${this.port} to ${currentPort - 1}, all are in use.`);
+    throw new Error(
+      `Failed to start server. Tried ports ${this.port} to ${currentPort - 1}, all are in use.`
+    );
   }
 
   private async tryStartServer(port: number): Promise<string> {
@@ -84,7 +88,10 @@ export class OAuth2CallbackServer {
 
     console.error('[CALLBACK] Server received request:', req.url);
     console.error('[CALLBACK] Parsed URL path:', url.pathname);
-    console.error('[CALLBACK] Query parameters:', Object.fromEntries(url.searchParams));
+    console.error(
+      '[CALLBACK] Query parameters:',
+      Object.fromEntries(url.searchParams)
+    );
 
     if (url.pathname === '/callback') {
       const code = url.searchParams.get('code');
@@ -96,7 +103,11 @@ export class OAuth2CallbackServer {
 
       if (error) {
         const errorDescription = url.searchParams.get('error_description');
-        console.error('[CALLBACK] OAuth error received:', error, errorDescription);
+        console.error(
+          '[CALLBACK] OAuth error received:',
+          error,
+          errorDescription
+        );
 
         res.writeHead(400, { 'Content-Type': 'text/html' });
         res.end(`
@@ -152,7 +163,9 @@ export class OAuth2CallbackServer {
         return;
       }
 
-      console.error('[CALLBACK] No authorization code or error found in callback');
+      console.error(
+        '[CALLBACK] No authorization code or error found in callback'
+      );
     } else {
       console.error('[CALLBACK] Request to non-callback path:', url.pathname);
     }

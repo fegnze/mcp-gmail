@@ -18,7 +18,7 @@ export class AuthManager {
   constructor(tokenPath = 'token.json') {
     // 使用项目根目录作为基础路径，而不是process.cwd()
     const projectRoot = path.dirname(__dirname); // 从dist目录回到项目根目录
-    
+
     this.tokenPath = path.isAbsolute(tokenPath)
       ? tokenPath
       : path.resolve(projectRoot, tokenPath);
@@ -58,7 +58,8 @@ export class AuthManager {
     // 使用默认redirect_uri如果没有提供
     const finalCredentials: GoogleCredentials = {
       ...credentials,
-      redirect_uri: credentials.redirect_uri || GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
+      redirect_uri:
+        credentials.redirect_uri || GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
     };
 
     this.callbackServer = new OAuth2CallbackServer(
@@ -93,15 +94,21 @@ export class AuthManager {
   private startBackgroundAuthHandler(credentials: GoogleCredentials): void {
     setTimeout(async () => {
       try {
-        console.error('[AUTH] Background auth handler started, waiting for callback...');
+        console.error(
+          '[AUTH] Background auth handler started, waiting for callback...'
+        );
         const authCode = await this.waitForCallback();
         console.error('[AUTH] Received auth code, processing token...');
         await this.handleAuthCallback(authCode, credentials);
-        console.error('[AUTH] Background authentication completed successfully');
+        console.error(
+          '[AUTH] Background authentication completed successfully'
+        );
         console.error('[AUTH] Token saved, you can now use the Gmail service');
       } catch (error) {
         console.error('[AUTH] Background authentication failed:', error);
-        console.error('[AUTH] You may need to manually retry the authentication');
+        console.error(
+          '[AUTH] You may need to manually retry the authentication'
+        );
       }
     }, 0);
   }
@@ -120,7 +127,10 @@ export class AuthManager {
     }
   }
 
-  async handleAuthCallback(code: string, credentials: GoogleCredentials): Promise<TokenData> {
+  async handleAuthCallback(
+    code: string,
+    credentials: GoogleCredentials
+  ): Promise<TokenData> {
     try {
       console.error('[AUTH] Processing authorization code...');
       console.error('[AUTH] Code length:', code.length);
@@ -129,7 +139,10 @@ export class AuthManager {
       // 创建专门用于token交换的OAuth2Client，使用正确的回调URL
       const tokenOAuth2Client = this.createOAuth2Client({
         ...credentials,
-        redirect_uri: this.currentCallbackUrl || credentials.redirect_uri || GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
+        redirect_uri:
+          this.currentCallbackUrl ||
+          credentials.redirect_uri ||
+          GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
       });
 
       console.error(
@@ -217,11 +230,13 @@ export class AuthManager {
     });
 
     try {
-      const { credentials: newCredentials } = await oauth2Client.refreshAccessToken();
+      const { credentials: newCredentials } =
+        await oauth2Client.refreshAccessToken();
 
       const tokenData: TokenData = {
         access_token: newCredentials.access_token!,
-        refresh_token: newCredentials.refresh_token || currentToken.refresh_token,
+        refresh_token:
+          newCredentials.refresh_token || currentToken.refresh_token,
         token_type: newCredentials.token_type || 'Bearer',
         expires_in: newCredentials.expiry_date
           ? Math.floor((newCredentials.expiry_date - Date.now()) / 1000)
@@ -278,16 +293,19 @@ export class AuthManager {
     };
   }
 
-  getOAuth2Client(credentials: GoogleCredentials, token?: TokenData): OAuth2Client {
+  getOAuth2Client(
+    credentials: GoogleCredentials,
+    token?: TokenData
+  ): OAuth2Client {
     const oauth2Client = this.createOAuth2Client(credentials);
-    
+
     if (token) {
       oauth2Client.setCredentials({
         access_token: token.access_token,
         refresh_token: token.refresh_token || null,
       });
     }
-    
+
     return oauth2Client;
   }
 }

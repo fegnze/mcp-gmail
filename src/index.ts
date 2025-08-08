@@ -10,7 +10,11 @@ import {
 import { z } from 'zod';
 import { AuthManager } from './auth.js';
 import { GmailService } from './gmail.js';
-import { EmailOptions, AuthUrlOptions, GOOGLE_OAUTH_CONSTANTS } from './types.js';
+import {
+  EmailOptions,
+  AuthUrlOptions,
+  GOOGLE_OAUTH_CONSTANTS,
+} from './types.js';
 
 // 定义工具参数结构
 const SendEmailArgsSchema = z.object({
@@ -88,19 +92,23 @@ class GmailMCPServer {
                 },
                 cc: {
                   type: 'string',
-                  description: 'Carbon copy (CC) email addresses, comma-separated for multiple recipients',
+                  description:
+                    'Carbon copy (CC) email addresses, comma-separated for multiple recipients',
                 },
                 client_id: {
                   type: 'string',
-                  description: 'Google OAuth2 Client ID from Google Cloud Console',
+                  description:
+                    'Google OAuth2 Client ID from Google Cloud Console',
                 },
                 client_secret: {
                   type: 'string',
-                  description: 'Google OAuth2 Client Secret from Google Cloud Console',
+                  description:
+                    'Google OAuth2 Client Secret from Google Cloud Console',
                 },
                 redirect_uri: {
                   type: 'string',
-                  description: 'OAuth2 redirect URI (optional, defaults to http://localhost:8080/callback)',
+                  description:
+                    'OAuth2 redirect URI (optional, defaults to http://localhost:8080/callback)',
                 },
               },
               required: ['to', 'subject', 'body', 'client_id', 'client_secret'],
@@ -115,15 +123,18 @@ class GmailMCPServer {
               properties: {
                 client_id: {
                   type: 'string',
-                  description: 'Google OAuth2 Client ID from Google Cloud Console',
+                  description:
+                    'Google OAuth2 Client ID from Google Cloud Console',
                 },
                 client_secret: {
                   type: 'string',
-                  description: 'Google OAuth2 Client Secret from Google Cloud Console',
+                  description:
+                    'Google OAuth2 Client Secret from Google Cloud Console',
                 },
                 redirect_uri: {
                   type: 'string',
-                  description: 'OAuth2 redirect URI (optional, defaults to http://localhost:8080/callback)',
+                  description:
+                    'OAuth2 redirect URI (optional, defaults to http://localhost:8080/callback)',
                 },
               },
               required: ['client_id', 'client_secret'],
@@ -230,9 +241,10 @@ class GmailMCPServer {
       const credentials = {
         client_id: args.client_id,
         client_secret: args.client_secret,
-        redirect_uri: args.redirect_uri || GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
+        redirect_uri:
+          args.redirect_uri || GOOGLE_OAUTH_CONSTANTS.DEFAULT_REDIRECT_URI,
       };
-      
+
       const { authUrl } = await this.authManager.generateAuthUrl(credentials);
 
       setTimeout(async () => {
