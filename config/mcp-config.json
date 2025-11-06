@@ -1,11 +1,10 @@
 {
   "mcpServers": {
-    "gmail": {
+    "wtc-gmail": {
       "command": "node",
       "args": [
-        "dist/index.js"
-      ],
-      "cwd": "/path/to/mcp-gmail"
+        "~/work/mcp/wtc-gmail/dist/index.js"
+      ]
     }
   }
 }
